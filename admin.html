@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>管理后台 — 导航中心</title>
+  <style>
+    :root {
+      --primary:   #2563eb;
+      --primary-h: #1d4ed8;
+      --bg:        #f1f5f9;
+      --card-bg:   #ffffff;
+      --text:      #1e293b;
+      --text-sub:  #64748b;
+      --border:    #e2e8f0;
+      --danger:    #ef4444;
+      --success:   #10b981;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', "Segoe UI Emoji", "Inter", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ===== LOGIN SCREEN ===== */
+    #login-screen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+
+    .login-card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.1);
+      padding: 2rem 1.75rem;
+      width: 100%;
+      max-width: 380px;
+    }
+
+    .login-icon {
+      font-size: 2.5rem;
+      text-align: center;
+      margin-bottom: 0.75rem;
+    }
+
+    .login-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 0.25rem;
+    }
+
+    .login-sub {
+      font-size: 0.8rem;
+      color: var(--text-sub);
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .field-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-sub);
+      display: block;
+      margin-bottom: 0.4rem;
+    }
+
+    .field-input {
+      width: 100%;
+      padding: 0.65rem 0.9rem;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      font-size: 16px;
+      background: #f8fafc;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      margin-bottom: 1rem;
+    }
+    .field-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+      background: #fff;
+    }
+
+    .btn-primary {
+      width: 100%;
+      padding: 0.7rem;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 9px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-primary:active { background: var(--primary-h); }
+
+    .error-msg {
+      font-size: 0.8rem;
+      color: var(--danger);
+      text-align: center;
+      margin-top: 0.75rem;
+      min-height: 1.2em;
+    }
+
+    /* ===== ADMIN SCREEN ===== */
+    #admin-screen { display: none; }
+
+    .admin-header {
+      background: linear-gradient(135deg,#0f172a,#1e293b);
+      padding: 1rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .admin-header-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .admin-header-sub {
+      font-size: 0.72rem;
+      color: rgba(255,255,255,0.55);
+      margin-top: 0.1rem;
+    }
+
+    .header-btns {
+      display: flex;
+      gap: 0.5rem;
+      flex-shrink: 0;
+    }
+
+    .btn-sm {
+      padding: 0.4rem 0.9rem;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: opacity 0.15s;
+    }
+    .btn-sm:active { opacity: 0.8; }
+
+    .btn-outline-white {
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.25);
+    }
+
+    .btn-success {
+      background: var(--success);
+      color: #fff;
+    }
+
+    .btn-danger-sm {
+      background: rgba(239,68,68,0.15);
+      color: var(--danger);
+      border: 1px solid rgba(239,68,68,0.3);
+    }
+
+    .admin-container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 1.25rem;
+    }
+
+    /* ===== SECTION CARD ===== */
+    .section-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      margin-bottom: 1.25rem;
+      overflow: hidden;
+    }
+
+    .section-card-header {
+      padding: 0.9rem 1.1rem;
+      border-bottom: 1px solid var(--border);
+      background: #f8fafc;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .section-card-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .section-card-body { padding: 1rem 1.1rem; }
+
+    /* ===== GROUPS ===== */
+    .groups-list { display: flex; flex-direction: column; gap: 0.6rem; }
+
+    .group-item {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.65rem 0.875rem;
+    }
+
+    .group-badge {
+      width: 22px; height: 22px;
+      border-radius: 6px;
+      background: var(--primary);
+      color: #fff;
+      font-size: 0.7rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .group-item .field-input {
+      flex: 1;
+      margin-bottom: 0;
+      padding: 0.38rem 0.65rem;
+      font-size: 14px;
+      min-width: 0;
+    }
+
+    .group-item-id {
+      font-size: 0.7rem;
+      color: var(--text-sub);
+      font-family: monospace;
+      flex-shrink: 0;
+    }
+
+    .btn-icon {
+      width: 30px; height: 30px;
+      border-radius: 7px;
+      border: 1px solid var(--border);
+      background: #fff;
+      cursor: pointer;
+      font-size: 0.85rem;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.15s;
+    }
+    .btn-icon:active, .btn-icon:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .btn-icon.del:active, .btn-icon.del:hover { background: var(--danger); border-color: var(--danger); }
+    .btn-icon:disabled { opacity: 0.25; pointer-events: none; }
+
+    .btn-icon.hidden-card {
+      color: #94a3b8;
+      background: #f1f5f9;
+    }
+    .btn-icon.hidden-card:hover {
+      background: #64748b;
+      border-color: #64748b;
+      color: #fff;
+    }
+
+    /* ===== CARDS LIST ===== */
+    .cards-list { display: flex; flex-direction: column; gap: 0.75rem; }
+
+    .card-item {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      padding: 0.875rem 1rem;
+    }
+
+    .card-item-head {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.7rem;
+    }
+
+    .card-order {
+      width: 22px; height: 22px;
+      border-radius: 6px;
+      background: var(--primary);
+      color: #fff;
+      font-size: 0.7rem;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .card-icon-preview {
+      font-size: 1.15rem;
+      flex-shrink: 0;
+    }
+
+    .card-name-preview {
+      font-weight: 700;
+      font-size: 0.875rem;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .card-move-btns { display: flex; gap: 0.2rem; flex-shrink: 0; }
+
+    .card-fields {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+    }
+
+    @media (max-width: 500px) {
+      .card-fields { grid-template-columns: 1fr; }
+    }
+
+    .card-field { display: flex; flex-direction: column; gap: 0.25rem; }
+    .card-field.full { grid-column: 1 / -1; }
+    .card-field label { font-size: 0.7rem; color: var(--text-sub); font-weight: 600; }
+    .card-field .field-input {
+      margin-bottom: 0;
+      padding: 0.4rem 0.6rem;
+      font-size: 14px;
+      background: #fff;
+    }
+
+    select.field-input {
+      cursor: pointer;
+    }
+
+    /* ===== 图标上传 ===== */
+    .icon-upload-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .icon-preview {
+      width: 44px; height: 44px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #f1f5f9;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem;
+      flex-shrink: 0;
+      overflow: hidden;
+      cursor: pointer;
+      position: relative;
+      transition: border-color 0.15s;
+    }
+    .icon-preview:hover { border-color: var(--primary); }
+    .icon-preview img { width: 100%; height: 100%; object-fit: cover; border-radius: 9px; }
+    .icon-preview .upload-hint {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(37,99,235,0.75);
+      color: #fff; font-size: 0.65rem; font-weight: 700;
+      border-radius: 9px; opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .icon-preview:hover .upload-hint { opacity: 1; }
+
+    .icon-upload-input { display: none; }
+
+    .icon-right { display: flex; flex-direction: column; gap: 0.25rem; flex: 1; min-width: 0; }
+    .icon-emoji-input { margin-bottom: 0; padding: 0.35rem 0.55rem; font-size: 14px; }
+    .icon-hint { font-size: 0.68rem; color: var(--text-sub); line-height: 1.4; }
+    .uploading-badge {
+      font-size: 0.7rem; color: var(--primary);
+      font-weight: 600;
+    }
+
+    /* ===== 添加按钮 ===== */
+    .btn-add {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      width: 100%;
+      padding: 0.6rem;
+      border: 1.5px dashed var(--border);
+      border-radius: 10px;
+      background: transparent;
+      color: var(--text-sub);
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      margin-top: 0.5rem;
+    }
+    .btn-add:hover { border-color: var(--primary); color: var(--primary); background: rgba(37,99,235,0.04); }
+
+    /* ===== TOAST ===== */
+    #toast {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: #1e293b;
+      color: #fff;
+      padding: 0.6rem 1.4rem;
+      border-radius: 100px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      opacity: 0;
+      transition: opacity 0.25s, transform 0.25s;
+      pointer-events: none;
+      white-space: nowrap;
+      z-index: 9999;
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    #toast.success { background: var(--success); }
+    #toast.error   { background: var(--danger); }
+
+    /* ===== 返回链接 ===== */
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-size: 0.8rem;
+      color: rgba(255,255,255,0.7);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+    .back-link:hover { color: #fff; }
+
+    /* ===== 点击记录 ===== */
+    .click-date-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-bottom: 0.875rem;
+    }
+    .click-date-tab {
+      padding: 0.3rem 0.7rem;
+      border-radius: 7px;
+      border: 1px solid var(--border);
+      background: #fff;
+      font-size: 0.78rem;
+      cursor: pointer;
+      font-weight: 500;
+      color: var(--text-sub);
+      transition: all 0.15s;
+    }
+    .click-date-tab.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+    .click-date-tab:hover:not(.active) { border-color: var(--primary); color: var(--primary); }
+
+    .click-stat-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.6rem 0.875rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.82rem;
+    }
+    .click-stat-row:last-child { border-bottom: none; }
+    .click-stat-ip { font-weight: 700; color: var(--text); font-family: monospace; font-size: 0.8rem; }
+    .click-stat-ip-source { font-size: 0.65rem; color: var(--text-sub); font-weight: normal; }
+    .click-stat-note { color: var(--text-sub); font-size: 0.75rem; }
+    .click-stat-count {
+      background: var(--primary-light);
+      color: var(--primary);
+      border-radius: 100px;
+      padding: 0.15rem 0.55rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .click-stat-detail { font-size: 0.65rem; color: var(--muted); margin-top: 2px; }
+    .note-input-wrap {
+      display: flex;
+      gap: 0.4rem;
+      margin-top: 0.3rem;
+    }
+    .note-input-wrap input {
+      flex: 1;
+      padding: 0.3rem 0.55rem;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      font-size: 0.75rem;
+      background: #fff;
+      color: var(--text);
+    }
+    .note-input-wrap input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    .note-save-btn {
+      padding: 0.3rem 0.6rem;
+      border-radius: 7px;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      font-size: 0.75rem;
+      cursor: pointer;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .note-save-btn:hover { background: var(--primary-h); }
+    .note-save-btn.saved { background: var(--success); }
+    .no-data-hint {
+      text-align: center;
+      color: var(--text-sub);
+      font-size: 0.82rem;
+      padding: 1.5rem;
+    }
+  </style>
+</head>
+<body>
+
+<!-- 登录界面 -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-icon">🔐</div>
+    <div class="login-title">管理后台</div>
+    <div class="login-sub">请输入管理员密码以继续</div>
+    <label class="field-label" for="pwd-input">管理员密码</label>
+    <input class="field-input" type="password" id="pwd-input" placeholder="请输入密码" autocomplete="current-password" />
+    <button class="btn-primary" onclick="doLogin()">登 录</button>
+    <div class="error-msg" id="login-error"></div>
+  </div>
+</div>
+
+<!-- 管理界面 -->
+<div id="admin-screen">
+  <div class="admin-header">
+    <div>
+      <div class="admin-header-title">⚙️ 导航管理后台</div>
+      <div class="admin-header-sub">配置修改后对所有访问者即时生效</div>
+    </div>
+    <div class="header-btns">
+      <a class="btn-sm btn-outline-white back-link" href="/">← 返回首页</a>
+      <button class="btn-sm btn-success" onclick="saveAll()">💾 保存</button>
+    </div>
+  </div>
+
+  <div class="admin-container">
+
+    <!-- 卡片点击记录 -->
+    <div class="section-card">
+      <div class="section-card-header">
+        <div class="section-card-title">📊 卡片点击记录</div>
+        <span style="font-size:0.75rem;color:var(--text-sub)">记录点击次数，支持备注</span>
+      </div>
+      <div class="section-card-body">
+        <!-- 设备名称设置 -->
+        <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:12px 14px;margin-bottom:14px;">
+          <div style="font-size:0.78rem;font-weight:600;color:#0369a1;margin-bottom:8px;">🎯 设备标识设置</div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input type="text" id="device-name-input" placeholder="为本设备设置名称（如：张三手机/李四电脑）" 
+                   style="flex:1;padding:6px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:13px;" />
+            <button onclick="saveDeviceName()" style="padding:6px 14px;background:#0ea5e9;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;">保存</button>
+          </div>
+          <div style="font-size:0.7rem;color:#64748b;margin-top:6px;">
+            设备ID: <code id="my-device-id" style="background:#e2e8f0;padding:1px 4px;border-radius:3px;"></code>
+          </div>
+        </div>
+        
+        <div class="click-date-tabs" id="click-date-tabs"></div>
+        <div id="click-records-list">
+          <div class="no-data-hint">加载中…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 区域管理 -->
+    <div class="section-card">
+      <div class="section-card-header">
+        <div class="section-card-title">📂 卡片区域</div>
+        <span style="font-size:0.75rem;color:var(--text-sub)">可修改区域名称</span>
+      </div>
+      <div class="section-card-body">
+        <div class="groups-list" id="groups-list"></div>
+      </div>
+    </div>
+
+    <!-- 卡片管理 -->
+    <div class="section-card">
+      <div class="section-card-header">
+        <div class="section-card-title">🗂️ 导航卡片</div>
+        <span style="font-size:0.75rem;color:var(--text-sub)">拖动 ↑↓ 调整顺序</span>
+      </div>
+      <div class="section-card-body">
+        <div class="cards-list" id="cards-list"></div>
+        <button class="btn-add" onclick="addCard()">＋ 添加卡片</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  let adminPassword = '';
+  let config = { groups: [], cards: [] };
+  let myDeviceId = localStorage.getItem('device_id') || ('device_' + Math.random().toString(36).substr(2, 9));
+  localStorage.setItem('device_id', myDeviceId);
+
+  // ── 登录 ──
+  document.getElementById('pwd-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doLogin();
+  });
+
+  async function doLogin() {
+    const pwd = document.getElementById('pwd-input').value;
+    if (!pwd) { showError('请输入密码'); return; }
+    try {
+      const r = await fetch('/api/verify', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({password: pwd})
+      });
+      if (r.ok) {
+        adminPassword = pwd;
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('admin-screen').style.display = 'block';
+        loadMyDeviceInfo();  // 加载本设备信息
+        await loadConfig();
+        await loadClicks();
+      } else {
+        showError('密码错误，请重试');
+      }
+    } catch(e) {
+      showError('连接失败，请检查服务');
+    }
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('login-error');
+    el.textContent = msg;
+    setTimeout(() => { el.textContent = ''; }, 3000);
+  }
+
+  // ── 加载配置 ──
+  async function loadConfig() {
+    try {
+      const r = await fetch('/api/config');
+      config = await r.json();
+    } catch(e) {
+      config = {
+        groups: [
+          {id:'ai',       name:'AI团队'},
+          {id:'business', name:'业务支持'},
+          {id:'info',     name:'信息'},
+        ],
+        cards: [
+          {id:'customer-research', type:'custom', icon:'🧠',title:'客户调研专家',desc:'自动分析客户背景、规模与潜力',url:'#',group:'ai'},
+          {id:'trade-assistant', type:'custom', icon:'🤖',title:'外贸问答助手',desc:'回答业务问题、流程、产品知识',url:'#',group:'ai'},
+          {id:'doc-processor', type:'custom', icon:'📄',title:'文档处理员',desc:'压缩PDF / PPT / 图片，提升效率',url:'#',group:'ai'},
+          {id:'email-writer', type:'custom', icon:'📧',title:'邮件写作助手',desc:'生成开发信、跟进邮件',url:'#',group:'ai'},
+        ]
+      };
+    }
+    renderGroups();
+    renderCards();
+  }
+
+  // ── 渲染区域列表 ──
+  function renderGroups() {
+    const list = document.getElementById('groups-list');
+    list.innerHTML = '';
+    config.groups.forEach((g, i) => {
+      const el = document.createElement('div');
+      el.className = 'group-item';
+      el.innerHTML = `
+        <div class="group-badge">${i+1}</div>
+        <input class="field-input" value="${escHtml(g.name)}" data-gi="${i}" placeholder="区域名称" />
+        <span class="group-item-id">#${g.id}</span>
+        <button class="btn-icon" onclick="moveGroup(${i},-1)" ${i===0?'disabled':''} title="上移">↑</button>
+        <button class="btn-icon" onclick="moveGroup(${i}, 1)" ${i===config.groups.length-1?'disabled':''} title="下移">↓</button>`;
+      list.appendChild(el);
+    });
+
+    list.querySelectorAll('input[data-gi]').forEach(inp => {
+      inp.addEventListener('input', e => {
+        config.groups[+e.target.dataset.gi].name = e.target.value;
+        renderCards(); // 同步更新下拉
+      });
+    });
+  }
+
+  function moveGroup(i, d) {
+    const j = i + d;
+    if (j < 0 || j >= config.groups.length) return;
+    [config.groups[i], config.groups[j]] = [config.groups[j], config.groups[i]];
+    renderGroups();
+  }
+
+  // ── 渲染卡片列表 ──
+  function renderCards() {
+    const list = document.getElementById('cards-list');
+    list.innerHTML = '';
+    config.cards.forEach((c, i) => {
+      const el = document.createElement('div');
+      el.className = 'card-item';
+
+      const groupOptions = config.groups.map(g =>
+        `<option value="${g.id}" ${c.group===g.id?'selected':''}>${escHtml(g.name)}</option>`
+      ).join('');
+
+      // 头部图标预览：有图片用 img，否则 emoji
+      const headIconHtml = c.icon_url
+        ? `<img src="${c.icon_url}" style="width:22px;height:22px;object-fit:cover;border-radius:5px;" />`
+        : (c.icon || '🔗');
+
+      // 隐藏状态标识
+      const isHidden = c.hidden;
+      const hiddenBadge = isHidden ? `<span style="background:#f59e0b;color:#fff;padding:1px 5px;border-radius:4px;font-size:0.65rem;font-weight:600;margin-left:4px;">已隐藏</span>` : '';
+      const eyeIcon = isHidden ? '👁️‍🗨️' : '👁️';
+
+      // 上传区域图标预览
+      const uploadPreviewHtml = c.icon_url
+        ? `<img src="${c.icon_url}" alt="" />`
+        : `<span>${c.icon || '🔗'}</span>`;
+
+      el.innerHTML = `
+        <div class="card-item-head">
+          <div class="card-order">${i+1}</div>
+          <div class="card-icon-preview" style="font-size:1rem;display:flex;align-items:center;">${headIconHtml}</div>
+          <div class="card-name-preview">${escHtml(c.title)}${hiddenBadge}</div>
+          <div class="card-move-btns">
+            <button class="btn-icon ${isHidden?'hidden-card':''}" onclick="toggleCardHidden(${i})" title="${isHidden?'恢复显示':'暂不显示'}">${eyeIcon}</button>
+            <button class="btn-icon" onclick="moveCard(${i},-1)" ${i===0?'disabled':''}>↑</button>
+            <button class="btn-icon" onclick="moveCard(${i}, 1)" ${i===config.cards.length-1?'disabled':''}>↓</button>
+            <button class="btn-icon del" onclick="removeCard(${i})" title="删除">✕</button>
+          </div>
+        </div>
+        <div class="card-fields">
+          <div class="card-field">
+            <label>名称</label>
+            <input class="field-input" data-ci="${i}" data-f="title" value="${escHtml(c.title)}" placeholder="卡片名称" />
+          </div>
+          <div class="card-field">
+            <label>图标</label>
+            <div class="icon-upload-wrap">
+              <div class="icon-preview" id="icon-prev-${i}" onclick="document.getElementById('icon-file-${i}').click()">
+                ${uploadPreviewHtml}
+                <div class="upload-hint">上传</div>
+              </div>
+              <input class="icon-upload-input" type="file" id="icon-file-${i}" accept="image/*" data-ci="${i}" />
+              <div class="icon-right">
+                <input class="field-input icon-emoji-input" data-ci="${i}" data-f="icon" value="${escHtml(c.icon||'')}" placeholder="或输入 emoji 🔗" />
+                <div class="icon-hint">点击图标上传图片（≤2MB）<br>上传后自动替换 emoji</div>
+                <div class="uploading-badge" id="uploading-${i}" style="display:none">上传中…</div>
+              </div>
+            </div>
+          </div>
+          <div class="card-field full">
+            <label>链接地址</label>
+            <input class="field-input" type="url" data-ci="${i}" data-f="url" value="${escHtml(c.url)}" placeholder="http://..." inputmode="url" />
+          </div>
+          <div class="card-field full">
+            <label>简介描述</label>
+            <input class="field-input" data-ci="${i}" data-f="desc" value="${escHtml(c.desc||'')}" placeholder="一句话介绍" />
+          </div>
+          <div class="card-field">
+            <label>所属区域</label>
+            <select class="field-input" data-ci="${i}" data-f="group">${groupOptions}</select>
+          </div>
+        </div>`;
+      list.appendChild(el);
+    });
+
+    // 普通字段输入监听
+    list.querySelectorAll('[data-ci][data-f]').forEach(inp => {
+      inp.addEventListener('input', e => {
+        const idx = +e.target.dataset.ci, f = e.target.dataset.f;
+        config.cards[idx][f] = e.target.value;
+        if (f === 'title') {
+          inp.closest('.card-item').querySelector('.card-name-preview').textContent = e.target.value;
+        }
+        if (f === 'icon') {
+          const prev = document.getElementById('icon-prev-' + idx);
+          const span = prev.querySelector('span');
+          if (span) span.textContent = e.target.value || '🔗';
+        }
+      });
+    });
+
+    // 图片上传监听
+    list.querySelectorAll('.icon-upload-input').forEach(fileInput => {
+      fileInput.addEventListener('change', async e => {
+        const idx = +e.target.dataset.ci;
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const badge = document.getElementById('uploading-' + idx);
+        badge.style.display = 'block';
+
+        const formData = new FormData();
+        formData.append('password', adminPassword);
+        formData.append('card_id', config.cards[idx].id);
+        formData.append('file', file);
+
+        try {
+          const r = await fetch('/api/upload_icon', { method: 'POST', body: formData });
+          const d = await r.json();
+          if (d.ok) {
+            config.cards[idx].icon_url = d.icon_url;
+            // 更新预览
+            const prev = document.getElementById('icon-prev-' + idx);
+            prev.innerHTML = `<img src="${d.icon_url}?t=${Date.now()}" alt="" /><div class="upload-hint">上传</div>`;
+            showToast('✅ 图标上传成功', 'success');
+          } else {
+            showToast('❌ 上传失败：' + (d.error || '未知错误'), 'error');
+          }
+        } catch(err) {
+          showToast('❌ 网络错误', 'error');
+        } finally {
+          badge.style.display = 'none';
+          e.target.value = '';
+        }
+      });
+    });
+  }
+
+  function moveCard(i, d) {
+    const j = i + d;
+    if (j < 0 || j >= config.cards.length) return;
+    [config.cards[i], config.cards[j]] = [config.cards[j], config.cards[i]];
+    renderCards();
+  }
+
+  function removeCard(i) {
+    if (!confirm(`确认删除"${config.cards[i].title}"？`)) return;
+    config.cards.splice(i, 1);
+    renderCards();
+  }
+
+  function toggleCardHidden(i) {
+    // 初始化 hidden 字段
+    if (config.cards[i].hidden === undefined) {
+      config.cards[i].hidden = false;
+    }
+    config.cards[i].hidden = !config.cards[i].hidden;
+    renderCards();
+    showToast(config.cards[i].hidden ? '✅ 卡片已隐藏' : '✅ 卡片已恢复显示', 'success');
+  }
+
+  function addCard() {
+    const newId = 'card_' + Date.now();
+    config.cards.push({
+      id:    newId,
+      type:  'custom',
+      icon:  '🔗',
+      title: '新卡片',
+      desc:  '',
+      url:   'http://',
+      group: config.groups[0]?.id || ''
+    });
+    renderCards();
+    // 滚到新卡片
+    setTimeout(() => {
+      const items = document.querySelectorAll('.card-item');
+      items[items.length-1]?.scrollIntoView({behavior:'smooth', block:'center'});
+    }, 100);
+  }
+
+  // ── 保存 ──
+  async function saveAll() {
+    try {
+      const r = await fetch('/api/config', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ password: adminPassword, config })
+      });
+      const d = await r.json();
+      if (d.ok) {
+        showToast('✅ 保存成功，首页配置已更新', 'success');
+      } else {
+        showToast('❌ ' + (d.error || '保存失败'), 'error');
+      }
+    } catch(e) {
+      showToast('❌ 网络错误', 'error');
+    }
+  }
+
+  // ── Toast ──
+  let toastTimer;
+  function showToast(msg, type='') {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = 'show' + (type ? ' ' + type : '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { el.className = ''; }, 2800);
+  }
+
+  // ── 转义 ──
+  function escHtml(s) {
+    return String(s||'')
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;');
+  }
+
+  // ── 设备名称管理 ──
+  let deviceNames = JSON.parse(localStorage.getItem('device_names') || '{}');
+  
+  function saveDeviceName() {
+    const name = document.getElementById('device-name-input').value.trim();
+    if (name) {
+      deviceNames[myDeviceId] = name;
+      localStorage.setItem('device_names', JSON.stringify(deviceNames));
+      localStorage.setItem('my_device_name', name);
+      showToast('✅ 设备名称已保存', 'success');
+      renderClickRecords();
+    }
+  }
+  
+  function getDeviceName(ipOrId) {
+    // 先查找设备名称映射
+    for (const [id, name] of Object.entries(deviceNames)) {
+      if (id === ipOrId || name) return name;
+    }
+    return null;
+  }
+  
+  function loadMyDeviceInfo() {
+    document.getElementById('my-device-id').textContent = myDeviceId;
+    const savedName = localStorage.getItem('my_device_name') || deviceNames[myDeviceId] || '';
+    document.getElementById('device-name-input').value = savedName;
+  }
+
+  // ── 点击记录 ──
+  let clickData = {};
+  let activeDate = '';
+
+  async function loadClicks() {
+    try {
+      const r = await fetch('/api/clicks?password=' + encodeURIComponent(adminPassword));
+      if (r.ok) {
+        clickData = await r.json();
+        renderClickTabs();
+      } else {
+        document.getElementById('click-records-list').innerHTML = '<div class="no-data-hint">无访问权限</div>';
+      }
+    } catch(e) {
+      document.getElementById('click-records-list').innerHTML = '<div class="no-data-hint">加载失败</div>';
+    }
+  }
+
+  function renderClickTabs() {
+    const tabsEl = document.getElementById('click-date-tabs');
+    const dates = Object.keys(clickData).sort().reverse();
+    if (!dates.length) {
+      tabsEl.innerHTML = '';
+      document.getElementById('click-records-list').innerHTML = '<div class="no-data-hint">暂无点击记录</div>';
+      return;
+    }
+    if (!activeDate || !clickData[activeDate]) activeDate = dates[0];
+
+    tabsEl.innerHTML = dates.map(d =>
+      `<button class="click-date-tab ${d===activeDate?'active':''}" onclick="switchDate('${d}')">${d}</button>`
+    ).join('');
+
+    renderClickRecords();
+  }
+
+  function switchDate(d) {
+    activeDate = d;
+    renderClickTabs();
+  }
+
+  function renderClickRecords() {
+    const listEl = document.getElementById('click-records-list');
+    const dayData = clickData[activeDate] || {};
+    const ips = Object.keys(dayData).sort();
+
+    if (!ips.length) {
+      listEl.innerHTML = '<div class="no-data-hint">该日期暂无点击记录</div>';
+      return;
+    }
+
+    listEl.innerHTML = ips.map(ip => {
+      const cards = dayData[ip];
+      const total = Object.values(cards).reduce((s, c) => s + (c.count || 0), 0);
+      const firstNote = Object.values(cards)[0]?.note || '';
+      
+      // 获取设备名称（优先使用用户设置的名称）
+      const deviceName = getDeviceName(ip);
+      const deviceLabel = deviceName 
+        ? `<span style="background:#10b981;color:#fff;padding:1px 6px;border-radius:4px;font-size:0.7rem;margin-left:6px;">${escHtml(deviceName)}</span>` 
+        : '';
+      
+      // 判断IP类型
+      let ipSource = '';
+      if (ip.startsWith('172.')) {
+        ipSource = '<span class="click-stat-ip-source">（Docker）</span>';
+      } else if (ip.startsWith('192.168.') || ip.startsWith('10.')) {
+        ipSource = '<span class="click-stat-ip-source">（内网）</span>';
+      } else {
+        ipSource = '<span class="click-stat-ip-source">（其他）</span>';
+      }
+
+      return `
+        <div class="click-stat-row">
+          <div>
+            <div class="click-stat-ip">
+              ${escHtml(ip)} ${ipSource} ${deviceLabel}
+            </div>
+            <div class="click-stat-note">${escHtml(firstNote) || '— 无备注'}</div>
+            <div class="note-input-wrap">
+              <input type="text" placeholder="为该 IP 添加备注…" value="${escHtml(firstNote)}" id="note-${escAttr(ip)}" />
+              <button class="note-save-btn" onclick="saveNote('${escAttr(ip)}', this)">保存</button>
+            </div>
+          </div>
+          <div class="click-stat-count">${total} 次</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function escAttr(s) {
+    return String(s||'').replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+  }
+
+  async function saveNote(ip, btn) {
+    const note = document.getElementById('note-' + escAttr(ip)).value;
+    const cardId = Object.keys(clickData[activeDate]?.[ip] || {})[0] || '';
+    try {
+      const r = await fetch('/api/ip_note', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ password: adminPassword, date: activeDate, ip, note, card_id: cardId })
+      });
+      if (r.ok) {
+        // 更新本地缓存
+        if (clickData[activeDate]?.[ip]?.[cardId]) {
+          clickData[activeDate][ip][cardId].note = note;
+        }
+        btn.textContent = '已保存';
+        btn.classList.add('saved');
+        setTimeout(() => { btn.textContent = '保存'; btn.classList.remove('saved'); }, 2000);
+      }
+    } catch(e) {}
+  }
+
+</script>
+</body>
+</html>
