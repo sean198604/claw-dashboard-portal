@@ -1,6 +1,8 @@
 import os
 import json
 import time
+import sqlite3
+import threading
 import psutil
 import datetime
 from flask import Flask, jsonify, send_from_directory, request, abort
@@ -43,7 +45,7 @@ DEFAULT_CONFIG = {
         {"id": "market-research", "type": "custom", "icon": "📊", "title": "产品市场调研", "desc": "产品市场调研工具", "url": "http://192.168.1.246:7005", "group": "tools"},
         {"id": "hr-chat", "type": "custom", "icon": "👥", "title": "人力资源自动问答", "desc": "人力资源智能助理，快速解答HR相关问题。", "url": "http://192.168.1.246:3000/chat/share?shareId=cf0b6DJhUN7FZ4RXpcvCiXQp", "group": "ai"},
         {"id": "fastgpt", "type": "fastgpt", "icon": "🤖", "title": "业务系统自动问答", "desc": "基于大语言模型的知识库问答系统，支持自定义知识库和对话流程。", "url": "http://192.168.1.246:3000/chat/share?shareId=bU7oyxuXwOZvPSIGIo5lZa8j", "group": "ai"},
-        {"id": "admin_bot", "type": "custom", "icon": "📋", "title": "行政问题自动问答", "desc": "行政事务智能助理，快速解答公司行政相关问题。", "url": "http://192.168.1.246:3000/chat/share?shareId=mVTdVCVOzAZNZyaAAmtLOl9C", "group": "ai"},
+        {"id": "admin_bot", "type": "custom", "icon": "📋", "title": "行政问题自动问答", "desc": "行政事务智能助理，快速解答公司行政相关问题。", "url": "http://192.168.1.246:3000/chat/share?shareId=euPRu71Dd2vEdcxgkfxMcLCn", "group": "ai"},
         {"id": "culture-score", "type": "custom", "icon": "🏆", "title": "EGO文化积分", "desc": "查看个人和部门文化积分", "url": "http://192.168.1.246:7006/", "group": "culture"},
         {"id": "zh-culture", "type": "custom", "icon": "📖", "title": "《众瀚四季》", "desc": "众瀚企业文化期刊，了解公司动态与文化。", "url": "http://192.168.1.246:7007/", "group": "culture"},
     ]
@@ -324,7 +326,7 @@ import urllib.request
 def exchange_rate():
     try:
         # 从 usd-cny-app 获取汇率（容器内网）
-        req = urllib.request.urlopen('http://192.168.1.246:5050/api/rates?days=1', timeout=5)
+        req = urllib.request.urlopen('http://host.docker.internal:5050/api/rates?days=1', timeout=5)
         data = json.loads(req.read().decode())
         if data and len(data) > 0:
             latest = data[-1]
@@ -338,6 +340,294 @@ def exchange_rate():
         return jsonify({'error': 'no data'})
     except Exception as e:
         return jsonify({'error': str(e)})
+
+# ═══════════════════════════════════════════════════════════
+#  IP 流量追踪 — SQLite 存储 + API
+# ═══════════════════════════════════════════════════════════
+
+TRAFFIC_DB = '/app/data/ip_traffic.db'
+_traffic_db_lock = threading.Lock()  # 线程安全锁
+
+def init_traffic_db():
+    """初始化流量数据库表结构"""
+    os.makedirs('/app/data', exist_ok=True)
+    with sqlite3.connect(TRAFFIC_DB) as conn:
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS traffic_logs (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                time       TEXT    NOT NULL,
+                client_ip  TEXT    NOT NULL,
+                target_port TEXT   NOT NULL
+            )
+        ''')
+        # 索引加速常用查询
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_traffic_ip   ON traffic_logs(client_ip)')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_traffic_port ON traffic_logs(target_port)')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_traffic_time ON traffic_logs(time)')
+        # IP 备注表
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS traffic_notes (
+                client_ip  TEXT PRIMARY KEY,
+                note       TEXT DEFAULT '',
+                updated_at TEXT DEFAULT (datetime('now','localtime'))
+            )
+        ''')
+        conn.commit()
+
+# 启动时初始化
+init_traffic_db()
+
+def insert_traffic_log(time_str, client_ip, target_port):
+    """插入一条访问记录（线程安全）"""
+    with _traffic_db_lock:
+        try:
+            with sqlite3.connect(TRAFFIC_DB) as conn:
+                conn.execute(
+                    'INSERT INTO traffic_logs (time, client_ip, target_port) VALUES (?, ?, ?)',
+                    (time_str, client_ip, target_port)
+                )
+                conn.commit()
+            return True
+        except Exception as e:
+            print(f"[traffic] 写入失败: {e}", flush=True)
+            return False
+
+def query_traffic(sql, params=()):
+    """通用查询（带锁）"""
+    with _traffic_db_lock:
+        with sqlite3.connect(TRAFFIC_DB) as conn:
+            conn.row_factory = sqlite3.Row
+            cur = conn.execute(sql, params)
+            return [dict(row) for row in cur.fetchall()]
+
+# ── 接收 WSL2 脚本推送的 IP 数据 ──
+@app.route('/api/receive-ip', methods=['POST'])
+def receive_ip():
+    """
+    接收 docker-ip-sender.sh 推送的访问数据
+    JSON: {"time": "2026-05-25 19:30:00", "client_ip": "192.168.1.142", "target_port": "8001"}
+    """
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({'error': 'invalid json'}), 400
+
+    time_str   = data.get('time', '')
+    client_ip  = data.get('client_ip', '')
+    target_port = data.get('target_port', '')
+
+    if not time_str or not client_ip or not target_port:
+        return jsonify({'error': 'missing required fields (time, client_ip, target_port)'}), 400
+
+    # 基本校验
+    if not client_ip.replace('.', '').isdigit():
+        return jsonify({'error': 'invalid client_ip'}), 400
+
+    # 排除服务器自身 IP（避免记录自己的监控请求）
+    if client_ip == '192.168.1.246':
+        return jsonify({'ok': True, 'skipped': 'self'})
+
+    if not insert_traffic_log(time_str, client_ip, target_port):
+        return jsonify({'error': 'db write failed'}), 500
+
+    return jsonify({'ok': True})
+
+# ── 清除流量数据（管理用） ──
+@app.route('/api/traffic/clear', methods=['POST'])
+def clear_traffic():
+    data = request.get_json(silent=True) or {}
+    if data.get('password', '') != ADMIN_PASSWORD:
+        return jsonify({'error': 'unauthorized'}), 401
+    with _traffic_db_lock:
+        with sqlite3.connect(TRAFFIC_DB) as conn:
+            conn.execute('DELETE FROM traffic_logs')
+            conn.commit()
+    return jsonify({'ok': True})
+
+# ── Top 20 活跃 IP（24小时内，排除服务器自身） ──
+@app.route('/api/traffic/top-ips')
+def traffic_top_ips():
+    """返回 24 小时内访问次数最多的 Top 20 IP（排除 192.168.1.246）"""
+    rows = query_traffic('''
+        SELECT client_ip, COUNT(*) AS count
+        FROM traffic_logs
+        WHERE time >= datetime('now', '-1 day', 'localtime')
+          AND client_ip != '192.168.1.246'
+        GROUP BY client_ip
+        ORDER BY count DESC
+        LIMIT 20
+    ''')
+    return jsonify(rows)
+
+# ── 各端口访问分布（排除服务器自身） ──
+@app.route('/api/traffic/port-stats')
+def traffic_port_stats():
+    """返回各端口的访问次数分布（24小时内，排除 192.168.1.246）"""
+    rows = query_traffic('''
+        SELECT target_port, COUNT(*) AS count
+        FROM traffic_logs
+        WHERE time >= datetime('now', '-1 day', 'localtime')
+          AND client_ip != '192.168.1.246'
+        GROUP BY target_port
+        ORDER BY count DESC
+    ''')
+    return jsonify(rows)
+
+# ── 最近访问记录 ──
+@app.route('/api/traffic/recent')
+def traffic_recent():
+    """返回最近 50 条访问记录"""
+    limit = request.args.get('limit', 50, type=int)
+    if limit > 200:
+        limit = 200
+    rows = query_traffic('''
+        SELECT time, client_ip, target_port
+        FROM traffic_logs
+        ORDER BY id DESC
+        LIMIT ?
+    ''', (limit,))
+    return jsonify(rows)
+
+# ── 汇总统计（排除服务器自身） ──
+@app.route('/api/traffic/summary')
+def traffic_summary():
+    """返回今日与历史汇总数据（排除 192.168.1.246）"""
+    today_total = query_traffic('''
+        SELECT COUNT(*) AS cnt FROM traffic_logs
+        WHERE time >= datetime('now', 'start of day', 'localtime')
+          AND client_ip != '192.168.1.246'
+    ''')
+    total = query_traffic("SELECT COUNT(*) AS cnt FROM traffic_logs WHERE client_ip != '192.168.1.246'")
+    unique_ips = query_traffic('''
+        SELECT COUNT(DISTINCT client_ip) AS cnt FROM traffic_logs
+        WHERE time >= datetime('now', '-1 day', 'localtime')
+          AND client_ip != '192.168.1.246'
+    ''')
+    return jsonify({
+        'today_visits': today_total[0]['cnt'] if today_total else 0,
+        'total_records': total[0]['cnt'] if total else 0,
+        'unique_ips_24h': unique_ips[0]['cnt'] if unique_ips else 0,
+    })
+
+# ── 分时访问量统计（24小时，排除服务器自身） ──
+@app.route('/api/traffic/hourly-stats')
+def traffic_hourly_stats():
+    """返回最近 24 小时按小时分组的访问量（排除 192.168.1.246）"""
+    rows = query_traffic('''
+        SELECT substr(time, 1, 13) AS hour, COUNT(*) AS count
+        FROM traffic_logs
+        WHERE time >= datetime('now', '-1 day', 'localtime')
+          AND client_ip != '192.168.1.246'
+        GROUP BY hour
+        ORDER BY hour
+    ''')
+    return jsonify(rows)
+
+# ── IP 聚合摘要（24h，按 IP 分组，含备注） ──
+@app.route('/api/traffic/ip-summary')
+def traffic_ip_summary():
+    """返回每个 IP 的最新访问时间、端口、24h 总次数、访问端口列表及备注"""
+    rows = query_traffic('''
+        SELECT t.client_ip,
+               MAX(t.time) AS last_time,
+               COUNT(*) AS total_count,
+               GROUP_CONCAT(DISTINCT t.target_port) AS ports_visited
+        FROM traffic_logs t
+        WHERE t.time >= datetime('now', '-1 day', 'localtime')
+          AND t.client_ip != '192.168.1.246'
+        GROUP BY t.client_ip
+        ORDER BY last_time DESC
+    ''')
+    # 为每个 IP 补充 last_port 和 note
+    result = []
+    for row in rows:
+        ip = row['client_ip']
+        # 获取最近一次访问的端口
+        last = query_traffic(
+            'SELECT target_port FROM traffic_logs WHERE client_ip = ? ORDER BY id DESC LIMIT 1',
+            (ip,)
+        )
+        last_port = last[0]['target_port'] if last else ''
+        # 获取备注
+        note_row = query_traffic(
+            'SELECT note FROM traffic_notes WHERE client_ip = ?', (ip,)
+        )
+        note = note_row[0]['note'] if note_row else ''
+        result.append({
+            'client_ip': ip,
+            'last_time': row['last_time'],
+            'last_port': last_port,
+            'total_count': row['total_count'],
+            'ports_visited': row['ports_visited'].split(',') if row['ports_visited'] else [],
+            'note': note
+        })
+    return jsonify(result)
+
+# ── 单个 IP 的详细访问记录 ──
+@app.route('/api/traffic/ip-detail')
+def traffic_ip_detail():
+    """返回指定 IP 的详细访问记录（最近 200 条）"""
+    ip = request.args.get('ip', '')
+    if not ip:
+        return jsonify({'error': 'missing ip parameter'}), 400
+    rows = query_traffic('''
+        SELECT time, target_port
+        FROM traffic_logs
+        WHERE client_ip = ?
+        ORDER BY id DESC
+        LIMIT 200
+    ''', (ip,))
+    return jsonify(rows)
+
+# ── IP 备注读写 ──
+@app.route('/api/traffic/ip-note', methods=['GET', 'POST'])
+def traffic_ip_note():
+    """GET: 读取指定 IP 备注; POST: 保存备注"""
+    if request.method == 'GET':
+        ip = request.args.get('ip', '')
+        if not ip:
+            return jsonify({'error': 'missing ip parameter'}), 400
+        with _traffic_db_lock:
+            with sqlite3.connect(TRAFFIC_DB) as conn:
+                conn.row_factory = sqlite3.Row
+                cur = conn.execute('SELECT note FROM traffic_notes WHERE client_ip = ?', (ip,))
+                row = cur.fetchone()
+                return jsonify({'note': row['note'] if row else ''})
+    else:  # POST
+        data = request.get_json(silent=True) or {}
+        if data.get('password', '') != ADMIN_PASSWORD:
+            return jsonify({'error': 'unauthorized'}), 401
+        ip = data.get('ip', '')
+        note = data.get('note', '')
+        if not ip:
+            return jsonify({'error': 'missing ip'}), 400
+        with _traffic_db_lock:
+            with sqlite3.connect(TRAFFIC_DB) as conn:
+                conn.execute(
+                    'INSERT OR REPLACE INTO traffic_notes (client_ip, note, updated_at) VALUES (?, ?, datetime(\'now\',\'localtime\'))',
+                    (ip, note)
+                )
+                conn.commit()
+        return jsonify({'ok': True})
+
+# ── 导出原始日志 ──
+@app.route('/api/traffic/export')
+def traffic_export():
+    """导出最近 10000 条记录为纯文本（排除服务器自身）"""
+    rows = query_traffic('''
+        SELECT time, client_ip, target_port
+        FROM traffic_logs
+        WHERE client_ip != '192.168.1.246'
+        ORDER BY id DESC
+        LIMIT 10000
+    ''')
+    lines = []
+    for row in reversed(rows):
+        lines.append(f"{row['time']}  {row['client_ip']}  ->  :{row['target_port']}")
+    return '\n'.join(lines), 200, {'Content-Type': 'text/plain; charset=utf-8'}
+@app.route('/traffic')
+def traffic_page():
+    return send_from_directory('/app', 'traffic.html')
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8888, debug=False)

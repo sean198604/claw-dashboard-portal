@@ -13,9 +13,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app.py       .
 COPY index.html   .
 COPY admin.html   .
+COPY traffic.html .
 COPY static/      static/
 
-# 数据目录（config.json、icons、visit_count.json 持久化在此）
+# 数据目录（config.json、icons、visit_count.json、ip_traffic.db 持久化在此）
 VOLUME ["/app/data"]
 
 EXPOSE 8888

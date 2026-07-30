@@ -4,10 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
   <title>管理后台 — 导航中心</title>
+<link rel="icon" href="static/LOGO.png" type="image/png" />
+<link rel="shortcut icon" href="static/LOGO.png" type="image/png" />
+<link rel="apple-touch-icon" href="static/LOGO.png" />
   <style>
     :root {
       --primary:   #2563eb;
       --primary-h: #1d4ed8;
+      --primary-light: #eff6ff;
       --bg:        #f1f5f9;
       --card-bg:   #ffffff;
       --text:      #1e293b;
@@ -15,6 +19,8 @@
       --border:    #e2e8f0;
       --danger:    #ef4444;
       --success:   #10b981;
+      --warning:   #f59e0b;
+      --muted:     #94a3b8;
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -127,6 +133,7 @@
       position: sticky;
       top: 0;
       z-index: 100;
+      flex-wrap: wrap;
     }
 
     .admin-header-title {
@@ -145,6 +152,7 @@
       display: flex;
       gap: 0.5rem;
       flex-shrink: 0;
+      align-items: center;
     }
 
     .btn-sm {
@@ -154,7 +162,7 @@
       font-weight: 600;
       cursor: pointer;
       border: none;
-      transition: opacity 0.15s;
+      transition: opacity 0.15s, background 0.15s;
     }
     .btn-sm:active { opacity: 0.8; }
 
@@ -173,6 +181,32 @@
       background: rgba(239,68,68,0.15);
       color: var(--danger);
       border: 1px solid rgba(239,68,68,0.3);
+    }
+
+    /* ===== 页签导航 ===== */
+    .tab-bar {
+      display: flex;
+      gap: 0.3rem;
+      margin-right: 0.5rem;
+    }
+
+    .tab-btn {
+      padding: 0.4rem 0.9rem;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      background: transparent;
+      color: rgba(255,255,255,0.6);
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .tab-btn:hover { color: #fff; background: rgba(255,255,255,0.08); }
+    .tab-btn.active {
+      color: #fff;
+      background: rgba(255,255,255,0.18);
+      border-color: rgba(255,255,255,0.3);
     }
 
     .admin-container {
@@ -442,90 +476,6 @@
     }
     .back-link:hover { color: #fff; }
 
-    /* ===== 点击记录 ===== */
-    .click-date-tabs {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.4rem;
-      margin-bottom: 0.875rem;
-    }
-    .click-date-tab {
-      padding: 0.3rem 0.7rem;
-      border-radius: 7px;
-      border: 1px solid var(--border);
-      background: #fff;
-      font-size: 0.78rem;
-      cursor: pointer;
-      font-weight: 500;
-      color: var(--text-sub);
-      transition: all 0.15s;
-    }
-    .click-date-tab.active {
-      background: var(--primary);
-      color: #fff;
-      border-color: var(--primary);
-    }
-    .click-date-tab:hover:not(.active) { border-color: var(--primary); color: var(--primary); }
-
-    .click-stat-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0.6rem 0.875rem;
-      border-bottom: 1px solid var(--border);
-      font-size: 0.82rem;
-    }
-    .click-stat-row:last-child { border-bottom: none; }
-    .click-stat-ip { font-weight: 700; color: var(--text); font-family: monospace; font-size: 0.8rem; }
-    .click-stat-ip-source { font-size: 0.65rem; color: var(--text-sub); font-weight: normal; }
-    .click-stat-note { color: var(--text-sub); font-size: 0.75rem; }
-    .click-stat-count {
-      background: var(--primary-light);
-      color: var(--primary);
-      border-radius: 100px;
-      padding: 0.15rem 0.55rem;
-      font-size: 0.75rem;
-      font-weight: 700;
-      flex-shrink: 0;
-    }
-    .click-stat-detail { font-size: 0.65rem; color: var(--muted); margin-top: 2px; }
-    .note-input-wrap {
-      display: flex;
-      gap: 0.4rem;
-      margin-top: 0.3rem;
-    }
-    .note-input-wrap input {
-      flex: 1;
-      padding: 0.3rem 0.55rem;
-      border: 1px solid var(--border);
-      border-radius: 7px;
-      font-size: 0.75rem;
-      background: #fff;
-      color: var(--text);
-    }
-    .note-input-wrap input:focus {
-      outline: none;
-      border-color: var(--primary);
-    }
-    .note-save-btn {
-      padding: 0.3rem 0.6rem;
-      border-radius: 7px;
-      background: var(--primary);
-      color: #fff;
-      border: none;
-      font-size: 0.75rem;
-      cursor: pointer;
-      font-weight: 600;
-      white-space: nowrap;
-    }
-    .note-save-btn:hover { background: var(--primary-h); }
-    .note-save-btn.saved { background: var(--success); }
-    .no-data-hint {
-      text-align: center;
-      color: var(--text-sub);
-      font-size: 0.82rem;
-      padding: 1.5rem;
-    }
   </style>
 </head>
 <body>
@@ -551,39 +501,19 @@
       <div class="admin-header-sub">配置修改后对所有访问者即时生效</div>
     </div>
     <div class="header-btns">
+      <!-- 页签导航 -->
+      <div class="tab-bar">
+        <button class="tab-btn active" data-tab="nav" onclick="switchTab('nav')">📂 导航管理</button>
+      </div>
       <a class="btn-sm btn-outline-white back-link" href="/">← 返回首页</a>
-      <button class="btn-sm btn-success" onclick="saveAll()">💾 保存</button>
+      <button class="btn-sm btn-success" id="btn-save" onclick="saveAll()">💾 保存</button>
     </div>
   </div>
 
-  <div class="admin-container">
-
-    <!-- 卡片点击记录 -->
-    <div class="section-card">
-      <div class="section-card-header">
-        <div class="section-card-title">📊 卡片点击记录</div>
-        <span style="font-size:0.75rem;color:var(--text-sub)">记录点击次数，支持备注</span>
-      </div>
-      <div class="section-card-body">
-        <!-- 设备名称设置 -->
-        <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:12px 14px;margin-bottom:14px;">
-          <div style="font-size:0.78rem;font-weight:600;color:#0369a1;margin-bottom:8px;">🎯 设备标识设置</div>
-          <div style="display:flex;gap:8px;align-items:center;">
-            <input type="text" id="device-name-input" placeholder="为本设备设置名称（如：张三手机/李四电脑）" 
-                   style="flex:1;padding:6px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:13px;" />
-            <button onclick="saveDeviceName()" style="padding:6px 14px;background:#0ea5e9;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;">保存</button>
-          </div>
-          <div style="font-size:0.7rem;color:#64748b;margin-top:6px;">
-            设备ID: <code id="my-device-id" style="background:#e2e8f0;padding:1px 4px;border-radius:3px;"></code>
-          </div>
-        </div>
-        
-        <div class="click-date-tabs" id="click-date-tabs"></div>
-        <div id="click-records-list">
-          <div class="no-data-hint">加载中…</div>
-        </div>
-      </div>
-    </div>
+  <!-- ═══════════════════════════════════════════════
+       页签 1：导航管理
+       ═══════════════════════════════════════════════ -->
+  <div class="admin-container tab-panel" id="tab-nav">
 
     <!-- 区域管理 -->
     <div class="section-card">
@@ -609,6 +539,7 @@
     </div>
 
   </div>
+
 </div>
 
 <div id="toast"></div>
@@ -618,6 +549,29 @@
   let config = { groups: [], cards: [] };
   let myDeviceId = localStorage.getItem('device_id') || ('device_' + Math.random().toString(36).substr(2, 9));
   localStorage.setItem('device_id', myDeviceId);
+
+  // ═══════════════════════════════════════════════════
+  //  页签切换
+  // ═══════════════════════════════════════════════════
+  let currentTab = 'nav';
+
+  function switchTab(tab) {
+    currentTab = tab;
+
+    // 更新按钮状态
+    document.querySelectorAll('.tab-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.tab === tab);
+    });
+
+    // 切换面板显示
+    document.querySelectorAll('.tab-panel').forEach(p => {
+      p.style.display = 'none';
+    });
+    document.getElementById('tab-' + tab).style.display = '';
+
+    // 导航管理页签显示保存按钮，其他隐藏
+    document.getElementById('btn-save').style.display = (tab === 'nav') ? '' : 'none';
+  }
 
   // ── 登录 ──
   document.getElementById('pwd-input').addEventListener('keydown', e => {
@@ -637,9 +591,7 @@
         adminPassword = pwd;
         document.getElementById('login-screen').style.display = 'none';
         document.getElementById('admin-screen').style.display = 'block';
-        loadMyDeviceInfo();  // 加载本设备信息
         await loadConfig();
-        await loadClicks();
       } else {
         showError('密码错误，请重试');
       }
@@ -721,17 +673,14 @@
         `<option value="${g.id}" ${c.group===g.id?'selected':''}>${escHtml(g.name)}</option>`
       ).join('');
 
-      // 头部图标预览：有图片用 img，否则 emoji
       const headIconHtml = c.icon_url
         ? `<img src="${c.icon_url}" style="width:22px;height:22px;object-fit:cover;border-radius:5px;" />`
         : (c.icon || '🔗');
 
-      // 隐藏状态标识
       const isHidden = c.hidden;
       const hiddenBadge = isHidden ? `<span style="background:#f59e0b;color:#fff;padding:1px 5px;border-radius:4px;font-size:0.65rem;font-weight:600;margin-left:4px;">已隐藏</span>` : '';
       const eyeIcon = isHidden ? '👁️‍🗨️' : '👁️';
 
-      // 上传区域图标预览
       const uploadPreviewHtml = c.icon_url
         ? `<img src="${c.icon_url}" alt="" />`
         : `<span>${c.icon || '🔗'}</span>`;
@@ -820,7 +769,6 @@
           const d = await r.json();
           if (d.ok) {
             config.cards[idx].icon_url = d.icon_url;
-            // 更新预览
             const prev = document.getElementById('icon-prev-' + idx);
             prev.innerHTML = `<img src="${d.icon_url}?t=${Date.now()}" alt="" /><div class="upload-hint">上传</div>`;
             showToast('✅ 图标上传成功', 'success');
@@ -851,7 +799,6 @@
   }
 
   function toggleCardHidden(i) {
-    // 初始化 hidden 字段
     if (config.cards[i].hidden === undefined) {
       config.cards[i].hidden = false;
     }
@@ -872,7 +819,6 @@
       group: config.groups[0]?.id || ''
     });
     renderCards();
-    // 滚到新卡片
     setTimeout(() => {
       const items = document.querySelectorAll('.card-item');
       items[items.length-1]?.scrollIntoView({behavior:'smooth', block:'center'});
@@ -915,148 +861,6 @@
       .replace(/</g,'&lt;')
       .replace(/>/g,'&gt;')
       .replace(/"/g,'&quot;');
-  }
-
-  // ── 设备名称管理 ──
-  let deviceNames = JSON.parse(localStorage.getItem('device_names') || '{}');
-  
-  function saveDeviceName() {
-    const name = document.getElementById('device-name-input').value.trim();
-    if (name) {
-      deviceNames[myDeviceId] = name;
-      localStorage.setItem('device_names', JSON.stringify(deviceNames));
-      localStorage.setItem('my_device_name', name);
-      showToast('✅ 设备名称已保存', 'success');
-      renderClickRecords();
-    }
-  }
-  
-  function getDeviceName(ipOrId) {
-    // 先查找设备名称映射
-    for (const [id, name] of Object.entries(deviceNames)) {
-      if (id === ipOrId || name) return name;
-    }
-    return null;
-  }
-  
-  function loadMyDeviceInfo() {
-    document.getElementById('my-device-id').textContent = myDeviceId;
-    const savedName = localStorage.getItem('my_device_name') || deviceNames[myDeviceId] || '';
-    document.getElementById('device-name-input').value = savedName;
-  }
-
-  // ── 点击记录 ──
-  let clickData = {};
-  let activeDate = '';
-
-  async function loadClicks() {
-    try {
-      const r = await fetch('/api/clicks?password=' + encodeURIComponent(adminPassword));
-      if (r.ok) {
-        clickData = await r.json();
-        renderClickTabs();
-      } else {
-        document.getElementById('click-records-list').innerHTML = '<div class="no-data-hint">无访问权限</div>';
-      }
-    } catch(e) {
-      document.getElementById('click-records-list').innerHTML = '<div class="no-data-hint">加载失败</div>';
-    }
-  }
-
-  function renderClickTabs() {
-    const tabsEl = document.getElementById('click-date-tabs');
-    const dates = Object.keys(clickData).sort().reverse();
-    if (!dates.length) {
-      tabsEl.innerHTML = '';
-      document.getElementById('click-records-list').innerHTML = '<div class="no-data-hint">暂无点击记录</div>';
-      return;
-    }
-    if (!activeDate || !clickData[activeDate]) activeDate = dates[0];
-
-    tabsEl.innerHTML = dates.map(d =>
-      `<button class="click-date-tab ${d===activeDate?'active':''}" onclick="switchDate('${d}')">${d}</button>`
-    ).join('');
-
-    renderClickRecords();
-  }
-
-  function switchDate(d) {
-    activeDate = d;
-    renderClickTabs();
-  }
-
-  function renderClickRecords() {
-    const listEl = document.getElementById('click-records-list');
-    const dayData = clickData[activeDate] || {};
-    const ips = Object.keys(dayData).sort();
-
-    if (!ips.length) {
-      listEl.innerHTML = '<div class="no-data-hint">该日期暂无点击记录</div>';
-      return;
-    }
-
-    listEl.innerHTML = ips.map(ip => {
-      const cards = dayData[ip];
-      const total = Object.values(cards).reduce((s, c) => s + (c.count || 0), 0);
-      const firstNote = Object.values(cards)[0]?.note || '';
-      
-      // 获取设备名称（优先使用用户设置的名称）
-      const deviceName = getDeviceName(ip);
-      const deviceLabel = deviceName 
-        ? `<span style="background:#10b981;color:#fff;padding:1px 6px;border-radius:4px;font-size:0.7rem;margin-left:6px;">${escHtml(deviceName)}</span>` 
-        : '';
-      
-      // 判断IP类型
-      let ipSource = '';
-      if (ip.startsWith('172.')) {
-        ipSource = '<span class="click-stat-ip-source">（Docker）</span>';
-      } else if (ip.startsWith('192.168.') || ip.startsWith('10.')) {
-        ipSource = '<span class="click-stat-ip-source">（内网）</span>';
-      } else {
-        ipSource = '<span class="click-stat-ip-source">（其他）</span>';
-      }
-
-      return `
-        <div class="click-stat-row">
-          <div>
-            <div class="click-stat-ip">
-              ${escHtml(ip)} ${ipSource} ${deviceLabel}
-            </div>
-            <div class="click-stat-note">${escHtml(firstNote) || '— 无备注'}</div>
-            <div class="note-input-wrap">
-              <input type="text" placeholder="为该 IP 添加备注…" value="${escHtml(firstNote)}" id="note-${escAttr(ip)}" />
-              <button class="note-save-btn" onclick="saveNote('${escAttr(ip)}', this)">保存</button>
-            </div>
-          </div>
-          <div class="click-stat-count">${total} 次</div>
-        </div>
-      `;
-    }).join('');
-  }
-
-  function escAttr(s) {
-    return String(s||'').replace(/'/g, '&#39;').replace(/"/g, '&quot;');
-  }
-
-  async function saveNote(ip, btn) {
-    const note = document.getElementById('note-' + escAttr(ip)).value;
-    const cardId = Object.keys(clickData[activeDate]?.[ip] || {})[0] || '';
-    try {
-      const r = await fetch('/api/ip_note', {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ password: adminPassword, date: activeDate, ip, note, card_id: cardId })
-      });
-      if (r.ok) {
-        // 更新本地缓存
-        if (clickData[activeDate]?.[ip]?.[cardId]) {
-          clickData[activeDate][ip][cardId].note = note;
-        }
-        btn.textContent = '已保存';
-        btn.classList.add('saved');
-        setTimeout(() => { btn.textContent = '保存'; btn.classList.remove('saved'); }, 2000);
-      }
-    } catch(e) {}
   }
 
 </script>

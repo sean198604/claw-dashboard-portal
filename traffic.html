@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>内网流量监控 — 导航中心</title>
+<link rel="icon" href="static/LOGO.png" type="image/png" />
+<link rel="shortcut icon" href="static/LOGO.png" type="image/png" />
+<link rel="apple-touch-icon" href="static/LOGO.png" />
+  <!-- ECharts CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+  <style>
+    :root {
+      --primary:   #2563eb;
+      --primary-h: #1d4ed8;
+      --primary-light: #eff6ff;
+      --bg:        #f1f5f9;
+      --card-bg:   #ffffff;
+      --text:      #1e293b;
+      --text-sub:  #64748b;
+      --border:    #e2e8f0;
+      --danger:    #ef4444;
+      --success:   #10b981;
+      --warning:   #f59e0b;
+      --muted:     #94a3b8;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', "Segoe UI Emoji", "Inter", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ===== LOGIN SCREEN ===== */
+    #login-screen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+
+    .login-card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.1);
+      padding: 2rem 1.75rem;
+      width: 100%;
+      max-width: 380px;
+    }
+
+    .login-icon {
+      font-size: 2.5rem;
+      text-align: center;
+      margin-bottom: 0.75rem;
+    }
+
+    .login-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 0.25rem;
+    }
+
+    .login-sub {
+      font-size: 0.8rem;
+      color: var(--text-sub);
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .field-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-sub);
+      display: block;
+      margin-bottom: 0.4rem;
+    }
+
+    .field-input {
+      width: 100%;
+      padding: 0.65rem 0.9rem;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      font-size: 16px;
+      background: #f8fafc;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      margin-bottom: 1rem;
+    }
+    .field-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+      background: #fff;
+    }
+
+    .btn-primary {
+      width: 100%;
+      padding: 0.7rem;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 9px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-primary:active { background: var(--primary-h); }
+
+    .error-msg {
+      font-size: 0.8rem;
+      color: var(--danger);
+      text-align: center;
+      margin-top: 0.75rem;
+      min-height: 1.2em;
+    }
+
+    /* ===== DASHBOARD SCREEN ===== */
+    #dashboard-screen { display: none; }
+
+    .dashboard-header {
+      background: linear-gradient(135deg,#0f172a,#1e293b);
+      padding: 1rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .dashboard-header-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .dashboard-header-sub {
+      font-size: 0.72rem;
+      color: rgba(255,255,255,0.55);
+      margin-top: 0.1rem;
+    }
+
+    .header-btns {
+      display: flex;
+      gap: 0.5rem;
+      flex-shrink: 0;
+    }
+
+    .btn-sm {
+      padding: 0.4rem 0.9rem;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: opacity 0.15s;
+    }
+    .btn-sm:active { opacity: 0.8; }
+
+    .btn-outline-white {
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.25);
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-size: 0.8rem;
+      color: rgba(255,255,255,0.7);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+    .back-link:hover { color: #fff; }
+
+    /* ===== MAIN LAYOUT ===== */
+    .dashboard-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1.25rem;
+    }
+
+    /* ===== STAT CARDS ===== */
+    .stat-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .stat-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.1rem 1.25rem;
+      text-align: center;
+    }
+
+    .stat-card-value {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--primary);
+      line-height: 1.1;
+    }
+
+    .stat-card-label {
+      font-size: 0.75rem;
+      color: var(--text-sub);
+      margin-top: 0.3rem;
+      font-weight: 600;
+    }
+
+    /* ===== CHART GRID ===== */
+    .chart-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+
+    @media (max-width: 768px) {
+      .chart-grid { grid-template-columns: 1fr; }
+      .stat-cards { grid-template-columns: 1fr 1fr; }
+    }
+
+    .chart-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .chart-card-header {
+      padding: 0.9rem 1.1rem;
+      border-bottom: 1px solid var(--border);
+      background: #f8fafc;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .chart-card-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .chart-card-body {
+      padding: 0.5rem;
+    }
+
+    .chart-box {
+      width: 100%;
+      height: 350px;
+    }
+
+    /* ===== TABLE CARD ===== */
+    .table-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      margin-bottom: 1.25rem;
+    }
+
+    .table-card-header {
+      padding: 0.9rem 1.1rem;
+      border-bottom: 1px solid var(--border);
+      background: #f8fafc;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .table-card-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .table-card-body {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th {
+      background: #f8fafc;
+      padding: 0.65rem 0.9rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text-sub);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      border-bottom: 2px solid var(--border);
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 0.55rem 0.9rem;
+      font-size: 0.82rem;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    tr:hover td { background: #f8fafc; }
+
+    .tag-port {
+      display: inline-block;
+      padding: 0.15rem 0.55rem;
+      background: var(--primary-light);
+      color: var(--primary);
+      border-radius: 100px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      font-family: monospace;
+    }
+
+    .tag-ip {
+      font-family: monospace;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .tag-time {
+      color: var(--text-sub);
+      font-size: 0.78rem;
+    }
+
+    .no-data {
+      text-align: center;
+      color: var(--text-sub);
+      padding: 2rem;
+      font-size: 0.85rem;
+    }
+
+    /* ===== REFRESH INDICATOR ===== */
+    .refresh-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.7rem;
+      color: var(--success);
+      font-weight: 600;
+    }
+
+    .refresh-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--success);
+      display: inline-block;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* ===== PORT NAME MAP TOOLTIP ===== */
+    .port-name-hint {
+      font-size: 0.65rem;
+      color: var(--muted);
+      margin-left: 0.3rem;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ==================== 登录界面 ==================== -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-icon">📡</div>
+    <div class="login-title">内网流量监控</div>
+    <div class="login-sub">请输入管理员密码以查看实时流量数据</div>
+    <label class="field-label" for="pwd-input">管理员密码</label>
+    <input class="field-input" type="password" id="pwd-input" placeholder="请输入密码" autocomplete="current-password" />
+    <button class="btn-primary" onclick="doLogin()">登 录</button>
+    <div class="error-msg" id="login-error"></div>
+  </div>
+</div>
+
+<!-- ==================== 仪表盘界面 ==================== -->
+<div id="dashboard-screen">
+
+  <!-- 顶栏 -->
+  <div class="dashboard-header">
+    <div>
+      <div class="dashboard-header-title">📡 内网流量实时监控</div>
+      <div class="dashboard-header-sub">
+        基于 iptables PREROUTING 捕获真实客户端 IP 
+        <span class="refresh-indicator"><span class="refresh-dot"></span> 每5秒自动刷新</span>
+      </div>
+    </div>
+    <div class="header-btns">
+      <a class="btn-sm btn-outline-white back-link" href="/admin">← 返回后台</a>
+    </div>
+  </div>
+
+  <!-- 主体内容 -->
+  <div class="dashboard-container">
+
+    <!-- 统计卡片 -->
+    <div class="stat-cards">
+      <div class="stat-card">
+        <div class="stat-card-value" id="stat-today">-</div>
+        <div class="stat-card-label">📊 今日访问量</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-value" id="stat-unique">-</div>
+        <div class="stat-card-label">👤 24h 独立 IP</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-value" id="stat-total">-</div>
+        <div class="stat-card-label">💾 累计记录</div>
+      </div>
+    </div>
+
+    <!-- 图表区 -->
+    <div class="chart-grid">
+      <!-- Top 10 活跃 IP 柱状图 -->
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <div class="chart-card-title">🏆 Top 10 活跃内网 IP <span class="port-name-hint">(24h)</span></div>
+        </div>
+        <div class="chart-card-body">
+          <div class="chart-box" id="chart-top-ips"></div>
+        </div>
+      </div>
+
+      <!-- 各项目访问热度饼图 -->
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <div class="chart-card-title">🥧 各项目访问热度 <span class="port-name-hint">(24h)</span></div>
+        </div>
+        <div class="chart-card-body">
+          <div class="chart-box" id="chart-port-stats"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 实时访问记录表 -->
+    <div class="table-card">
+      <div class="table-card-header">
+        <div class="table-card-title">📋 实时访问日志</div>
+        <span style="font-size:0.75rem;color:var(--text-sub)">最近 50 条</span>
+      </div>
+      <div class="table-card-body">
+        <table>
+          <thead>
+            <tr>
+              <th>时间</th>
+              <th>客户端 IP</th>
+              <th>访问端口</th>
+            </tr>
+          </thead>
+          <tbody id="recent-table-body">
+            <tr><td colspan="3" class="no-data">加载中…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════
+//  状态管理
+// ════════════════════════════════════════════════════
+let adminPassword = '';
+let topIpsChart = null;
+let portStatsChart = null;
+let refreshTimer = null;
+
+// 常见端口 → 项目名称映射（根据实际部署更新）
+const PORT_NAMES = {
+  '3000': 'FastGPT 知识库',
+  '5050': 'USD 汇率看板',
+  '7000': '提示词库',
+  '7001': 'Office 文档瘦身',
+  '7002': '智能装柜计算器',
+  '7003': '利润计算器',
+  '7004': '客户背景调研',
+  '7005': '产品市场调研',
+  '7006': '文化积分系统',
+  '7007': '《众瀚四季》期刊',
+  '8000': '名片识别 / Codex',
+  '8888': '导航门户'
+};
+
+function getPortLabel(port) {
+  return PORT_NAMES[port] ? `${port} (${PORT_NAMES[port]})` : `端口 ${port}`;
+}
+
+// ════════════════════════════════════════════════════
+//  登录
+// ════════════════════════════════════════════════════
+document.getElementById('pwd-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+
+async function doLogin() {
+  const pwd = document.getElementById('pwd-input').value;
+  if (!pwd) {
+    document.getElementById('login-error').textContent = '请输入密码';
+    return;
+  }
+  try {
+    const r = await fetch('/api/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pwd })
+    });
+    if (r.ok) {
+      adminPassword = pwd;
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('dashboard-screen').style.display = 'block';
+      initCharts();
+      refreshAll();
+      // 每 5 秒自动刷新
+      refreshTimer = setInterval(refreshAll, 5000);
+    } else {
+      document.getElementById('login-error').textContent = '密码错误，请重试';
+    }
+  } catch (e) {
+    document.getElementById('login-error').textContent = '连接失败，请检查服务';
+  }
+}
+
+// ════════════════════════════════════════════════════
+//  ECharts 初始化
+// ════════════════════════════════════════════════════
+function initCharts() {
+  topIpsChart = echarts.init(document.getElementById('chart-top-ips'));
+  portStatsChart = echarts.init(document.getElementById('chart-port-stats'));
+
+  // 窗口大小变化时自适应
+  window.addEventListener('resize', () => {
+    topIpsChart && topIpsChart.resize();
+    portStatsChart && portStatsChart.resize();
+  });
+}
+
+// ════════════════════════════════════════════════════
+//  数据刷新
+// ════════════════════════════════════════════════════
+async function refreshAll() {
+  await Promise.all([
+    refreshSummary(),
+    refreshTopIps(),
+    refreshPortStats(),
+    refreshRecent()
+  ]);
+}
+
+// 汇总统计卡片
+async function refreshSummary() {
+  try {
+    const r = await fetch('/api/traffic/summary');
+    const d = await r.json();
+    document.getElementById('stat-today').textContent = d.today_visits.toLocaleString();
+    document.getElementById('stat-unique').textContent = d.unique_ips_24h.toLocaleString();
+    document.getElementById('stat-total').textContent = d.total_records.toLocaleString();
+  } catch (e) { /* 静默失败 */ }
+}
+
+// Top 10 IP 柱状图
+async function refreshTopIps() {
+  try {
+    const r = await fetch('/api/traffic/top-ips');
+    const data = await r.json();
+
+    const ips = data.map(d => d.client_ip);
+    const counts = data.map(d => d.count);
+
+    topIpsChart.setOption({
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: { type: 'shadow' },
+        formatter: function(params) {
+          return `<strong>${params[0].name}</strong><br/>访问次数: ${params[0].value}`;
+        }
+      },
+      grid: { left: '3%', right: '8%', bottom: '3%', top: '8%', containLabel: true },
+      xAxis: {
+        type: 'category',
+        data: ips,
+        axisLabel: {
+          rotate: 30,
+          fontSize: 11,
+          fontFamily: 'monospace'
+        }
+      },
+      yAxis: {
+        type: 'value',
+        name: '访问次数',
+        minInterval: 1
+      },
+      series: [{
+        type: 'bar',
+        data: counts.map((v, i) => ({
+          value: v,
+          itemStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: '#3b82f6' },
+              { offset: 1, color: '#1d4ed8' }
+            ])
+          }
+        })),
+        barWidth: '50%',
+        label: {
+          show: true,
+          position: 'top',
+          fontSize: 11,
+          fontWeight: 'bold',
+          color: '#1e293b'
+        }
+      }]
+    });
+  } catch (e) { /* 静默 */ }
+}
+
+// 端口访问饼图
+async function refreshPortStats() {
+  try {
+    const r = await fetch('/api/traffic/port-stats');
+    const data = await r.json();
+
+    const pieData = data.map(d => ({
+      name: getPortLabel(d.target_port),
+      value: d.count
+    }));
+
+    portStatsChart.setOption({
+      tooltip: {
+        trigger: 'item',
+        formatter: '{b}: {c} 次 ({d}%)'
+      },
+      legend: {
+        type: 'scroll',
+        orient: 'vertical',
+        right: 10,
+        top: 'center',
+        textStyle: { fontSize: 11 }
+      },
+      series: [{
+        type: 'pie',
+        radius: ['40%', '70%'],
+        center: ['40%', '50%'],
+        avoidLabelOverlap: false,
+        itemStyle: {
+          borderRadius: 6,
+          borderColor: '#fff',
+          borderWidth: 2
+        },
+        label: {
+          show: false
+        },
+        emphasis: {
+          label: {
+            show: true,
+            fontSize: 14,
+            fontWeight: 'bold'
+          }
+        },
+        data: pieData
+      }]
+    });
+  } catch (e) { /* 静默 */ }
+}
+
+// 最近访问记录表
+async function refreshRecent() {
+  try {
+    const r = await fetch('/api/traffic/recent?limit=50');
+    const data = await r.json();
+
+    const tbody = document.getElementById('recent-table-body');
+
+    if (!data.length) {
+      tbody.innerHTML = '<tr><td colspan="3" class="no-data">暂无访问记录（请确认 docker-ip-sender.sh 已在 WSL2 中运行）</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = data.map(row => `
+      <tr>
+        <td class="tag-time">${escapeHtml(row.time)}</td>
+        <td><span class="tag-ip">${escapeHtml(row.client_ip)}</span></td>
+        <td><span class="tag-port">${getPortLabel(row.target_port)}</span></td>
+      </tr>
+    `).join('');
+  } catch (e) {
+    document.getElementById('recent-table-body').innerHTML =
+      '<tr><td colspan="3" class="no-data">加载失败，请检查服务</td></tr>';
+  }
+}
+
+// ════════════════════════════════════════════════════
+//  工具函数
+// ════════════════════════════════════════════════════
+function escapeHtml(s) {
+  return String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+</script>
+</body>
+</html>
