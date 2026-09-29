@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/readme-cover.png" alt="Dashboard Portal project cover" width="100%" /></p>
+
 # 8888 门户 (Dashboard Portal)
 
 EGO International 内部工具导航门户，卡片式布局集中管理所有内部系统的入口。
